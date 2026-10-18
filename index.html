@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIBE CHECK | Energy & Mood Visualizer</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Fallback CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Canvas-confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        display: ['"Space Grotesk"', 'sans-serif'],
+                    },
+                    colors: {
+                        vibe: {
+                            pink: '#FF2E93',
+                            purple: '#9D00FF',
+                            cyan: '#00F0FF',
+                            neon: '#39FF14',
+                            amber: '#FFB800',
+                            dark: '#0A0A12',
+                            card: 'rgba(18, 18, 30, 0.7)',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glow': 'glow 3s ease-in-out infinite alternate',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        glow: {
+                            '0%': { boxShadow: '0 0 15px rgba(255, 46, 147, 0.4)' },
+                            '100%': { boxShadow: '0 0 35px rgba(0, 240, 255, 0.8)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #06060c;
+            color: #f3f4f6;
+            overflow-x: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        /* Glassmorphism elements */
+        .glass-panel {
+            background: rgba(18, 18, 32, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-button {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-button:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(0, 240, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #06060c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f1f38;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #FF2E93;
+        }
+
+        /* Ambient Glow Background Blobs */
+        .glow-blob {
+            position: absolute;
+            filter: blur(90px);
+            opacity: 0.35;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+            transition: all 1s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-100 relative">
+
+    <div id="blob1" class="glow-blob w-[400px] h-[400px] bg-vibe-pink -top-20 -left-20 animate-pulse-slow"></div>
+    <div id="blob2" class="glow-blob w-[500px] h-[500px] bg-vibe-purple top-1/3 -right-20 animate-pulse-slow"></div>
+    <div id="blob3" class="glow-blob w-[450px] h-[450px] bg-vibe-cyan bottom-10 left-1/4 animate-pulse-slow"></div>
+
+    <header class="sticky top-0 z-50 glass-panel border-b border-white/10 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="scrollToSection('hero')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-vibe-pink via-vibe-purple to-vibe-cyan p-0.5 flex items-center justify-center animate-glow">
+                    <div class="w-full h-full bg-vibe-dark rounded-[10px] flex items-center justify-center">
+                        <i class="fa-solid fa-bolt text-vibe-cyan text-lg"></i>
+                    </div>
+                </div>
+                <span class="font-display font-bold text-2xl tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-vibe-cyan">
+                    VIBE<span class="text-vibe-pink">CHECK</span>
+                </span>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 text-sm font-semibold">
+                <button onclick="scrollToSection('quiz')" class="px-3 py-2 rounded-lg hover:text-vibe-cyan hover:bg-white/5 transition-all">Quiz</button>
+                <button onclick="scrollToSection('audio')" class="px-3 py-2 rounded-lg hover:text-vibe-cyan hover:bg-white/5 transition-all">Audio Lab</button>
+                <button onclick="scrollToSection('map')" class="px-3 py-2 rounded-lg hover:text-vibe-cyan hover:bg-white/5 transition-all">Vibe Radar</button>
+                <button onclick="scrollToSection('community')" class="px-3 py-2 rounded-lg hover:text-vibe-cyan hover:bg-white/5 transition-all">Community</button>
+                <button onclick="scrollToSection('card-gen')" class="px-3 py-2 rounded-lg hover:text-vibe-cyan hover:bg-white/5 transition-all">Card Generator</button>
+            </nav>
+
+            <!-- Quick Action Button -->
+            <div class="flex items-center space-x-3">
+                <button onclick="scrollToSection('quiz')" class="px-4 py-2 rounded-xl bg-gradient-to-r from-vibe-pink to-vibe-purple font-semibold text-sm hover:opacity-90 shadow-lg shadow-vibe-pink/25 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Check Vibe</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-24 py-10">
+
+        <!-- Hero Section -->
+        <section id="hero" class="text-center space-y-6 pt-10 pb-8">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-card border border-vibe-pink/30 text-xs sm:text-sm font-medium text-vibe-pink mb-2 animate-float">
+                <span class="w-2 h-2 rounded-full bg-vibe-pink animate-ping"></span>
+                <span>Live Energy Frequency Engine Active</span>
+            </div>
+            
+            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-display font-extrabold tracking-tight max-w-4xl mx-auto leading-tight">
+                Decode Your Current <span class="bg-clip-text text-transparent bg-gradient-to-r from-vibe-pink via-vibe-purple to-vibe-cyan">Energy & Atmosphere</span>
+            </h1>
+            
+            <p class="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto font-light">
+                An interactive sound, aura, and spatial vibe analyzer. Calculate your energy status, mix ambient soundscapes, discover local spot vibrations, and generate custom aesthetic vibe cards.
+            </p>
+
+            <div class="flex flex-wrap items-center justify-center gap-4 pt-4">
+                <button onclick="scrollToSection('quiz')" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-vibe-pink via-vibe-purple to-vibe-cyan font-bold text-lg shadow-xl shadow-vibe-purple/30 hover:scale-105 transition-all flex items-center gap-3">
+                    <i class="fa-solid fa-play"></i> Start Vibe Assessment
+                </button>
+                <button onclick="scrollToSection('audio')" class="px-8 py-4 rounded-2xl glass-button font-bold text-lg hover:border-vibe-cyan/50 transition-all flex items-center gap-3">
+                    <i class="fa-solid fa-sliders"></i> Audio Visualizer Lab
+                </button>
+            </div>
+
+            <!-- Quick Live Stats Banner -->
+            <div class="pt-10 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                <div class="glass-card p-4 rounded-2xl border border-white/5">
+                    <div class="text-2xl font-display font-bold text-vibe-cyan" id="stat-score">94 BPM</div>
+                    <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mt-1">Avg City Pulse</div>
+                </div>
+                <div class="glass-card p-4 rounded-2xl border border-white/5">
+                    <div class="text-2xl font-display font-bold text-vibe-pink" id="stat-active">Cyber Sunset</div>
+                    <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mt-1">Dominant Aura</div>
+                </div>
+                <div class="glass-card p-4 rounded-2xl border border-white/5">
+                    <div class="text-2xl font-display font-bold text-vibe-neon" id="stat-checkins">1,429</div>
+                    <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mt-1">Vibes Checked Today</div>
+                </div>
+                <div class="glass-card p-4 rounded-2xl border border-white/5">
+                    <div class="text-2xl font-display font-bold text-vibe-amber">Bostanlı Shore</div>
+                    <div class="text-xs text-slate-400 font-medium uppercase tracking-wider mt-1">Hot Spot Right Now</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="quiz" class="glass-panel rounded-3xl p-6 lg:p-10 border border-white/10 relative overflow-hidden">
+            <div class="max-w-3xl mx-auto">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <span class="text-xs font-bold text-vibe-cyan uppercase tracking-widest">Interactive Calculator</span>
+                        <h2 class="text-3xl font-display font-bold mt-1">Vibe Assessment Engine</h2>
+                    </div>
+                    <div class="text-right">
+                        <span id="quiz-step-indicator" class="text-xs font-semibold px-3 py-1 rounded-full glass-card text-slate-300">Question 1 of 5</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-800/80 rounded-full h-2 mb-8 overflow-hidden">
+                    <div id="quiz-progress" class="bg-gradient-to-r from-vibe-pink to-vibe-cyan h-2 rounded-full transition-all duration-500 w-[20%]"></div>
+                </div>
+
+                <!-- Quiz Container -->
+                <div id="quiz-container" class="space-y-6">
+                    <!-- Question 1 -->
+                    <div class="quiz-step space-y-4" data-step="1">
+                        <h3 class="text-xl font-semibold text-slate-100">1. How is your energy level feeling right this second?</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onclick="selectOption(1, 'chill', 20)" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">☕ Calm & Cozy (Chill Chill)</span>
+                                <i class="fa-solid fa-mug-hot text-slate-400 group-hover:text-vibe-cyan"></i>
+                            </button>
+                            <button onclick="selectOption(1, 'focus', 45)" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">💻 Focused & In The Zone</span>
+                                <i class="fa-solid fa-brain text-slate-400 group-hover:text-vibe-cyan"></i>
+                            </button>
+                            <button onclick="selectOption(1, 'sunset', 65)" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">🌅 Dreamy Sunset Melancholy</span>
+                                <i class="fa-solid fa-sun text-slate-400 group-hover:text-vibe-cyan"></i>
+                            </button>
+                            <button onclick="selectOption(1, 'hyped', 95)" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">⚡ High-Voltage Electric Energy</span>
+                                <i class="fa-solid fa-bolt text-slate-400 group-hover:text-vibe-cyan"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Question 2 -->
+                    <div class="quiz-step space-y-4 hidden" data-step="2">
+                        <h3 class="text-xl font-semibold text-slate-100">2. What soundscape matches your mind right now?</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onclick="selectOption(2, 'lofi', 'Lo-Fi Rain')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">🎧 Rainy Lo-Fi Beats & Vinyl Crinkle</span>
+                                <i class="fa-solid fa-headphones text-slate-400 group-hover:text-vibe-pink"></i>
+                            </button>
+                            <button onclick="selectOption(2, 'synth', 'Synthwave')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">🌆 Neon Synthwave & 80s Retro Arps</span>
+                                <i class="fa-solid fa-compact-disc text-slate-400 group-hover:text-vibe-pink"></i>
+                            </button>
+                            <button onclick="selectOption(2, 'house', 'Deep House')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">🪩 Thumping Deep House / Techno</span>
+                                <i class="fa-solid fa-record-vinyl text-slate-400 group-hover:text-vibe-pink"></i>
+                            </button>
+                            <button onclick="selectOption(2, 'acoustic', 'Acoustic')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">🎸 Soft Acoustic Guitar & Sea Breeze</span>
+                                <i class="fa-solid fa-guitar text-slate-400 group-hover:text-vibe-pink"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Question 3 -->
+                    <div class="quiz-step space-y-4 hidden" data-step="3">
+                        <h3 class="text-xl font-semibold text-slate-100">3. Pick a visual aesthetic color palette:</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <button onclick="selectOption(3, 'cyber', '#00F0FF')" class="quiz-opt glass-button p-4 rounded-2xl text-center flex flex-col items-center justify-center gap-2 group">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 shadow-lg"></div>
+                                <span class="text-xs font-semibold">Cyber Neon</span>
+                            </button>
+                            <button onclick="selectOption(3, 'sunset', '#FF2E93')" class="quiz-opt glass-button p-4 rounded-2xl text-center flex flex-col items-center justify-center gap-2 group">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-amber-500 shadow-lg"></div>
+                                <span class="text-xs font-semibold">Sunset Glow</span>
+                            </button>
+                            <button onclick="selectOption(3, 'matrix', '#39FF14')" class="quiz-opt glass-button p-4 rounded-2xl text-center flex flex-col items-center justify-center gap-2 group">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-lime-400 shadow-lg"></div>
+                                <span class="text-xs font-semibold">Acid Matrix</span>
+                            </button>
+                            <button onclick="selectOption(3, 'midnight', '#9D00FF')" class="quiz-opt glass-button p-4 rounded-2xl text-center flex flex-col items-center justify-center gap-2 group">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-900 shadow-lg"></div>
+                                <span class="text-xs font-semibold">Deep Midnight</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Question 4 -->
+                    <div class="quiz-step space-y-4 hidden" data-step="4">
+                        <h3 class="text-xl font-semibold text-slate-100">4. What are you doing right now?</h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <button onclick="selectOption(4, 'walk', 'strolling')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">🚶 Strolling by Kordon Coast</span>
+                                <i class="fa-solid fa-person-walking text-slate-400 group-hover:text-vibe-neon"></i>
+                            </button>
+                            <button onclick="selectOption(4, 'code', 'creating')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">💻 Late-night Coding / Designing</span>
+                                <i class="fa-solid fa-code text-slate-400 group-hover:text-vibe-neon"></i>
+                            </button>
+                            <button onclick="selectOption(4, 'party', 'socializing')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">🍹 Out with Friends in Alsancak</span>
+                                <i class="fa-solid fa-champagne-glasses text-slate-400 group-hover:text-vibe-neon"></i>
+                            </button>
+                            <button onclick="selectOption(4, 'chill', 'relaxing')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between group">
+                                <span class="font-medium">🛋️ Unwinding on a Cozy Couch</span>
+                                <i class="fa-solid fa-couch text-slate-400 group-hover:text-vibe-neon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Question 5 -->
+                    <div class="quiz-step space-y-4 hidden" data-step="5">
+                        <h3 class="text-xl font-semibold text-slate-100">5. Pick your vibe mantra:</h3>
+                        <div class="grid grid-cols-1 gap-3">
+                            <button onclick="selectOption(5, 'm1', 'Main Character Energy Only')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between">
+                                <span class="font-medium">✨ "Main Character Energy Only"</span>
+                                <i class="fa-solid fa-star text-vibe-amber"></i>
+                            </button>
+                            <button onclick="selectOption(5, 'm2', 'No Thoughts, Just Beats')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between">
+                                <span class="font-medium">🌊 "No Thoughts, Just Beats & Ocean Breeze"</span>
+                                <i class="fa-solid fa-water text-vibe-cyan"></i>
+                            </button>
+                            <button onclick="selectOption(5, 'm3', 'Building the Future at Night')" class="quiz-opt glass-button p-4 rounded-2xl text-left flex items-center justify-between">
+                                <span class="font-medium">🚀 "Building the Future in Stealth Mode"</span>
+                                <i class="fa-solid fa-rocket text-vibe-pink"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Result Display -->
+                    <div id="quiz-result" class="hidden text-center space-y-6 py-6">
+                        <div class="inline-block p-4 rounded-full bg-vibe-pink/10 border border-vibe-pink/30 animate-bounce">
+                            <i class="fa-solid fa-wand-magic-sparkles text-4xl text-vibe-pink"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs uppercase tracking-widest text-slate-400 font-bold">Your Calculated Vibe Profile</span>
+                            <h2 id="res-status" class="text-4xl font-display font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-vibe-pink via-vibe-purple to-vibe-cyan mt-1">Neon Cyberpunk High</h2>
+                        </div>
+
+                        <div class="flex justify-center items-center gap-6">
+                            <div class="text-center">
+                                <div class="text-4xl font-display font-black text-vibe-cyan" id="res-score">88%</div>
+                                <div class="text-xs text-slate-400 mt-1 uppercase tracking-wider">Vibe Score</div>
+                            </div>
+                            <div class="h-10 w-[1px] bg-slate-800"></div>
+                            <div class="text-center">
+                                <div class="text-4xl font-display font-black text-vibe-pink" id="res-bpm">128</div>
+                                <div class="text-xs text-slate-400 mt-1 uppercase tracking-wider">Target BPM</div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-2xl glass-card max-w-lg mx-auto text-sm text-slate-300 font-medium" id="res-description">
+                            You are in full synthwave state! Electric energy running through your system, perfect for high-focus night work or cruising down the coast.
+                        </div>
+
+                        <div class="flex flex-wrap justify-center gap-3">
+                            <button onclick="applyVibeTheme()" class="px-6 py-3 rounded-xl bg-vibe-cyan text-slate-950 font-bold hover:bg-cyan-300 transition-all shadow-lg shadow-vibe-cyan/20">
+                                Apply UI Color Theme
+                            </button>
+                            <button onclick="sendToCardGenerator()" class="px-6 py-3 rounded-xl glass-button font-bold text-white hover:border-vibe-pink/50 transition-all">
+                                Generate Vibe Card
+                            </button>
+                            <button onclick="resetQuiz()" class="px-4 py-3 rounded-xl bg-slate-800/80 text-slate-400 hover:text-white transition-all">
+                                <i class="fa-solid fa-rotate-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="audio" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <span class="text-xs font-bold text-vibe-pink uppercase tracking-widest">Interactive Audio Lab</span>
+                    <h2 class="text-3xl font-display font-bold mt-1">Soundscape & Canvas Visualizer</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400">Audio Mode:</span>
+                    <span id="audio-status-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">Ready</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Visualizer Display Box -->
+                <div class="lg:col-span-2 glass-panel rounded-3xl p-6 border border-white/10 flex flex-col justify-between space-y-6 relative overflow-hidden">
+                    <div class="flex items-center justify-between z-10">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-3 h-3 rounded-full bg-vibe-pink animate-ping"></div>
+                            <span class="text-sm font-semibold text-slate-200" id="current-track-title">Synthesizer Neon Pulse Loop</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="setVisualizerMode('bars')" class="px-3 py-1 rounded-lg text-xs font-semibold glass-button hover:text-vibe-cyan">Equalizer</button>
+                            <button onclick="setVisualizerMode('particles')" class="px-3 py-1 rounded-lg text-xs font-semibold glass-button hover:text-vibe-cyan">Particles</button>
+                            <button onclick="setVisualizerMode('waves')" class="px-3 py-1 rounded-lg text-xs font-semibold glass-button hover:text-vibe-cyan">Waves</button>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Graphic -->
+                    <div class="relative w-full h-64 bg-slate-950/80 rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center">
+                        <canvas id="visualizer-canvas" class="w-full h-full block"></canvas>
+                        <div id="visualizer-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 gap-3">
+                            <i class="fa-solid fa-circle-play text-5xl text-vibe-cyan/80 hover:scale-110 cursor-pointer transition-all" onclick="toggleAudioEngine()"></i>
+                            <span class="text-xs tracking-wider uppercase">Click to Initialize Synthesizer Audio</span>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Controls -->
+                    <div class="flex flex-wrap items-center justify-between gap-4 z-10 pt-2">
+                        <div class="flex items-center space-x-4">
+                            <button id="master-play-btn" onclick="toggleAudioEngine()" class="w-12 h-12 rounded-full bg-gradient-to-r from-vibe-pink to-vibe-purple flex items-center justify-center text-white text-lg shadow-lg shadow-vibe-pink/30 hover:scale-105 transition-all">
+                                <i class="fa-solid fa-play ml-0.5"></i>
+                            </button>
+                            <div>
+                                <div class="text-xs font-bold uppercase text-slate-400">Master Volume</div>
+                                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.7" class="w-28 sm:w-36 accent-vibe-pink bg-slate-800 rounded-lg h-1.5 cursor-pointer" oninput="updateMasterVolume(this.value)">
+                            </div>
+                        </div>
+
+                        <!-- Energy Frequency Selector -->
+                        <div class="flex items-center space-x-2">
+                            <button onclick="selectBeatTrack('synthwave')" class="track-btn px-3 py-2 rounded-xl text-xs font-semibold glass-button border-vibe-pink/40">Synthwave</button>
+                            <button onclick="selectBeatTrack('lofi')" class="track-btn px-3 py-2 rounded-xl text-xs font-semibold glass-button">Lo-Fi Chill</button>
+                            <button onclick="selectBeatTrack('house')" class="track-btn px-3 py-2 rounded-xl text-xs font-semibold glass-button">Techno House</button>
+                            <button onclick="selectBeatTrack('ambient')" class="track-btn px-3 py-2 rounded-xl text-xs font-semibold glass-button">Ambient Sea</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Soundboard / Beat Pad -->
+                <div class="glass-panel rounded-3xl p-6 border border-white/10 space-y-4 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-display font-bold text-slate-100 mb-1">Vibe Beat Pads</h3>
+                        <p class="text-xs text-slate-400">Tap pads to layer instant synth notes & sound effects</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="triggerSoundFX('synth-high')" class="pad-btn glass-card p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-vibe-pink/60 transition-all group active:scale-95">
+                            <i class="fa-solid fa-bolt text-vibe-pink text-xl group-hover:scale-110 transition-transform"></i>
+                            <span class="text-xs font-bold text-slate-200">Cyber Synth</span>
+                        </button>
+                        <button onclick="triggerSoundFX('sub-bass')" class="pad-btn glass-card p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-vibe-purple/60 transition-all group active:scale-95">
+                            <i class="fa-solid fa-drum text-vibe-purple text-xl group-hover:scale-110 transition-transform"></i>
+                            <span class="text-xs font-bold text-slate-200">Sub Bass Drop</span>
+                        </button>
+                        <button onclick="triggerSoundFX('lofi-chord')" class="pad-btn glass-card p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-vibe-cyan/60 transition-all group active:scale-95">
+                            <i class="fa-solid fa-cloud text-vibe-cyan text-xl group-hover:scale-110 transition-transform"></i>
+                            <span class="text-xs font-bold text-slate-200">Lo-Fi Chord</span>
+                        </button>
+                        <button onclick="triggerSoundFX('laser')" class="pad-btn glass-card p-4 rounded-2xl flex flex-col items-center justify-center gap-2 hover:border-vibe-neon/60 transition-all group active:scale-95">
+                            <i class="fa-solid fa-wand-magic-sparkles text-vibe-neon text-xl group-hover:scale-110 transition-transform"></i>
+                            <span class="text-xs font-bold text-slate-200">Glitch Zap</span>
+                        </button>
+                    </div>
+
+                    <!-- Custom Tempo Controller -->
+                    <div class="glass-card p-4 rounded-2xl space-y-2">
+                        <div class="flex justify-between items-center text-xs font-semibold">
+                            <span class="text-slate-400">Tempo / Speed</span>
+                            <span id="tempo-val" class="text-vibe-cyan">120 BPM</span>
+                        </div>
+                        <input type="range" min="80" max="160" value="120" step="1" oninput="updateTempo(this.value)" class="w-full accent-vibe-cyan bg-slate-800 rounded-lg h-1.5 cursor-pointer">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="map" class="space-y-6">
+            <div>
+                <span class="text-xs font-bold text-vibe-amber uppercase tracking-widest">Spatial Energy Radar</span>
+                <h2 class="text-3xl font-display font-bold mt-1">Local Vibe Spots & Energy Map</h2>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Vibe Radar Chart Container -->
+                <div class="glass-panel rounded-3xl p-6 border border-white/10 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-display font-bold text-slate-100">Radar Metrics</h3>
+                        <span class="text-xs text-vibe-amber bg-vibe-amber/10 px-2 py-1 rounded-full border border-vibe-amber/30">Live Radar</span>
+                    </div>
+
+                    <div class="relative w-full h-64 flex items-center justify-center">
+                        <canvas id="radar-canvas" class="w-full h-full"></canvas>
+                    </div>
+
+                    <div class="space-y-2 text-xs font-medium">
+                        <div class="flex justify-between p-2 rounded-xl bg-white/5">
+                            <span class="text-slate-400">Social Synergy</span>
+                            <span class="text-vibe-pink font-bold" id="rad-social">85%</span>
+                        </div>
+                        <div class="flex justify-between p-2 rounded-xl bg-white/5">
+                            <span class="text-slate-400">Chill Factor</span>
+                            <span class="text-vibe-cyan font-bold" id="rad-chill">62%</span>
+                        </div>
+                        <div class="flex justify-between p-2 rounded-xl bg-white/5">
+                            <span class="text-slate-400">Aesthetic Value</span>
+                            <span class="text-vibe-purple font-bold" id="rad-aesthetic">94%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive Local Vibe Map Pin Generator -->
+                <div class="lg:col-span-2 glass-panel rounded-3xl p-6 border border-white/10 space-y-4 flex flex-col justify-between">
+                    <div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                            <h3 class="text-lg font-display font-bold text-slate-100">Izmir Hotspots & Vibe Map</h3>
+                            <div class="flex gap-2">
+                                <button onclick="filterMap('all')" class="px-3 py-1 rounded-lg text-xs font-semibold glass-button border-vibe-amber/40">All Spots</button>
+                                <button onclick="filterMap('sunset')" class="px-3 py-1 rounded-lg text-xs font-semibold glass-button">Sunset</button>
+                                <button onclick="filterMap('night')" class="px-3 py-1 rounded-lg text-xs font-semibold glass-button">Nightlife</button>
+                            </div>
+                        </div>
+
+                        <!-- Stylized Map Canvas Overlay -->
+                        <div class="relative w-full h-72 bg-slate-950 rounded-2xl overflow-hidden border border-white/10 p-4 flex flex-col justify-between">
+                            <!-- Simulated Map Graphic Grid -->
+                            <div class="absolute inset-0 bg-[radial-gradient(#1f293d_1px,transparent_1px)] [background-size:16px_16px] opacity-40"></div>
+                            
+                            <!-- Interactive Map Pins -->
+                            <div id="map-pins-container" class="relative w-full h-full">
+                                <!-- Pins populated dynamically -->
+                            </div>
+
+                            <!-- Selected Spot Info Box Overlay -->
+                            <div id="spot-info-card" class="relative z-10 glass-card p-3 rounded-xl border border-white/10 max-w-sm flex items-center justify-between">
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-100" id="spot-title">Bostanlı Sunset Palms</h4>
+                                    <p class="text-xs text-slate-400" id="spot-desc">Chill sunset chill out, cold drinks, guitar circles.</p>
+                                </div>
+                                <span class="px-2 py-1 rounded-lg bg-vibe-amber/20 text-vibe-amber font-bold text-xs" id="spot-score">9.8 Vibe</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Spot Selection Row -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                        <button onclick="selectSpot('bostanli')" class="p-2.5 rounded-xl glass-card text-left hover:border-vibe-amber/50 transition-all">
+                            <div class="text-xs font-bold text-slate-200">Bostanlı Shore</div>
+                            <div class="text-[10px] text-vibe-amber">Sunset / Acoustic</div>
+                        </button>
+                        <button onclick="selectSpot('alsancak')" class="p-2.5 rounded-xl glass-card text-left hover:border-vibe-pink/50 transition-all">
+                            <div class="text-xs font-bold text-slate-200">Alsancak Streets</div>
+                            <div class="text-[10px] text-vibe-pink">High-Energy Party</div>
+                        </button>
+                        <button onclick="selectSpot('kordon')" class="p-2.5 rounded-xl glass-card text-left hover:border-vibe-cyan/50 transition-all">
+                            <div class="text-xs font-bold text-slate-200">Kordon Grass</div>
+                            <div class="text-[10px] text-vibe-cyan">Chill Social</div>
+                        </button>
+                        <button onclick="selectSpot('cesme')" class="p-2.5 rounded-xl glass-card text-left hover:border-vibe-purple/50 transition-all">
+                            <div class="text-xs font-bold text-slate-200">Çeşme After-Hour</div>
+                            <div class="text-[10px] text-vibe-purple">Deep House</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="community" class="space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <span class="text-xs font-bold text-vibe-neon uppercase tracking-widest">Global Pulse</span>
+                    <h2 class="text-3xl font-display font-bold mt-1">Live Vibe Feed & Meter</h2>
+                </div>
+
+                <!-- Add New Vibe Button Trigger -->
+                <button onclick="openVibeModal()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-vibe-neon to-emerald-400 text-slate-950 font-bold text-sm hover:opacity-90 shadow-lg shadow-vibe-neon/20 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Share Current Vibe
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Community Post Feed -->
+                <div class="lg:col-span-2 space-y-4" id="vibe-feed-container">
+                    <!-- Posts will be generated by JS -->
+                </div>
+
+                <!-- Live Energy Analytics / Leaderboard -->
+                <div class="glass-panel rounded-3xl p-6 border border-white/10 space-y-6 h-fit">
+                    <h3 class="text-lg font-display font-bold text-slate-100">Live Vibe Leaderboard</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-lg font-bold text-vibe-amber">#1</span>
+                                <div>
+                                    <div class="text-sm font-bold text-slate-200">Neon Synthwave</div>
+                                    <div class="text-xs text-slate-400">432 Active Listeners</div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold px-2 py-1 rounded bg-vibe-amber/10 text-vibe-amber">+24%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-lg font-bold text-slate-300">#2</span>
+                                <div>
+                                    <div class="text-sm font-bold text-slate-200">Sunset Chill Out</div>
+                                    <div class="text-xs text-slate-400">310 Active Listeners</div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold px-2 py-1 rounded bg-vibe-cyan/10 text-vibe-cyan">+12%</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-lg font-bold text-slate-400">#3</span>
+                                <div>
+                                    <div class="text-sm font-bold text-slate-200">High Voltage Techno</div>
+                                    <div class="text-xs text-slate-400">189 Active Listeners</div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold px-2 py-1 rounded bg-vibe-pink/10 text-vibe-pink">+8%</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-white/5 space-y-2">
+                        <div class="text-xs font-semibold text-slate-400">Active City Vibe Barometer</div>
+                        <div class="w-full h-3 bg-slate-800 rounded-full flex overflow-hidden">
+                            <div class="bg-vibe-pink h-full w-[45%]" title="Chill 45%"></div>
+                            <div class="bg-vibe-cyan h-full w-[35%]" title="Focus 35%"></div>
+                            <div class="bg-vibe-neon h-full w-[20%]" title="Hyped 20%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-400 font-semibold pt-1">
+                            <span>45% Chill</span>
+                            <span>35% Focus</span>
+                            <span>20% Electric</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="card-gen" class="glass-panel rounded-3xl p-6 lg:p-10 border border-white/10 space-y-8">
+            <div>
+                <span class="text-xs font-bold text-vibe-cyan uppercase tracking-widest">Exportable Digital Badge</span>
+                <h2 class="text-3xl font-display font-bold mt-1">Custom Vibe Card Generator</h2>
+                <p class="text-sm text-slate-400 mt-1">Design a personalized, sharable digital vibe status card with custom lyrics, gradients, and badges.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+                <!-- Controls & Form -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-2">User Handle / Name</label>
+                        <input type="text" id="card-input-name" value="Alex Rivera" oninput="updateCardPreview()" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-slate-100 text-sm focus:outline-none focus:border-vibe-cyan">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Vibe Title / Status</label>
+                        <input type="text" id="card-input-status" value="Cyberpunk Midnight Focus" oninput="updateCardPreview()" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-slate-100 text-sm focus:outline-none focus:border-vibe-cyan">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Currently Playing Track</label>
+                        <input type="text" id="card-input-track" value="Kavinsky - Nightcall (Vibe Remaster)" oninput="updateCardPreview()" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-slate-100 text-sm focus:outline-none focus:border-vibe-cyan">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Aesthetic Quote Preset</label>
+                        <select id="card-input-quote" onchange="updateCardPreview()" class="w-full px-4 py-3 rounded-xl bg-slate-900/80 border border-white/10 text-slate-100 text-sm focus:outline-none focus:border-vibe-cyan">
+                            <option value="Main character energy only.">"Main character energy only."</option>
+                            <option value="Chill vibes & ocean tides.">"Chill vibes & ocean tides."</option>
+                            <option value="Coding through the neon night.">"Coding through the neon night."</option>
+                            <option value="Low frequency, high clarity.">"Low frequency, high clarity."</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Gradient Style</label>
+                        <div class="flex gap-3">
+                            <button onclick="setCardGradient('cyber')" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-vibe-pink via-vibe-purple to-vibe-cyan border-2 border-white/40 hover:scale-110 transition-transform"></button>
+                            <button onclick="setCardGradient('sunset')" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 border-2 border-transparent hover:scale-110 transition-transform"></button>
+                            <button onclick="setCardGradient('emerald')" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-400 via-teal-600 to-blue-600 border-2 border-transparent hover:scale-110 transition-transform"></button>
+                            <button onclick="setCardGradient('dark')" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-slate-900 via-slate-800 to-indigo-950 border-2 border-transparent hover:scale-110 transition-transform"></button>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex gap-3">
+                        <button onclick="downloadVibeCard()" class="px-6 py-3 rounded-xl bg-gradient-to-r from-vibe-pink to-vibe-purple font-bold text-sm hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-vibe-pink/20">
+                            <i class="fa-solid fa-download"></i> Download Image
+                        </button>
+                        <button onclick="copyCardLink()" class="px-6 py-3 rounded-xl glass-button font-bold text-sm hover:border-vibe-cyan/50 transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-share-nodes"></i> Copy Share Link
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card Live Visual Preview Area -->
+                <div class="flex justify-center">
+                    <div id="vibe-card-preview" class="w-full max-w-sm h-auto aspect-[4/5] rounded-3xl p-6 bg-gradient-to-tr from-vibe-pink via-vibe-purple to-vibe-cyan shadow-2xl relative flex flex-col justify-between text-white overflow-hidden border border-white/20 transform transition-all hover:scale-[1.02]">
+                        <!-- Background Glow Accent -->
+                        <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-2xl"></div>
+                        
+                        <!-- Card Header -->
+                        <div class="flex items-center justify-between z-10">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-bolt text-vibe-cyan text-xl"></i>
+                                <span class="font-display font-bold tracking-wider text-sm">VIBE CHECK PASS</span>
+                            </div>
+                            <span class="text-[10px] font-mono px-2 py-1 rounded-full bg-black/30 backdrop-blur-md border border-white/10 uppercase" id="preview-badge">VERIFIED</span>
+                        </div>
+
+                        <!-- Card Middle Body -->
+                        <div class="space-y-3 z-10 my-4">
+                            <span id="preview-status" class="text-2xl font-display font-extrabold block leading-tight">Cyberpunk Midnight Focus</span>
+                            <p id="preview-quote" class="text-xs text-white/80 italic">"Main character energy only."</p>
+                        </div>
+
+                        <!-- Currently Playing Strip -->
+                        <div class="z-10 bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/10 space-y-1">
+                            <div class="flex items-center justify-between text-[10px] text-white/60">
+                                <span>CURRENT SOUNDTRACK</span>
+                                <i class="fa-solid fa-compact-disc animate-spin text-vibe-cyan"></i>
+                            </div>
+                            <div id="preview-track" class="text-xs font-semibold truncate">Kavinsky - Nightcall (Vibe Remaster)</div>
+                        </div>
+
+                        <!-- Card Footer -->
+                        <div class="flex items-center justify-between z-10 pt-2 border-t border-white/15">
+                            <div>
+                                <div class="text-[10px] text-white/60 uppercase">Calculated For</div>
+                                <div id="preview-name" class="text-xs font-bold">Alex Rivera</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[10px] text-white/60 uppercase">Frequency</div>
+                                <div class="text-xs font-bold text-vibe-cyan">128 BPM</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal and Toast Notifications -->
+    <div id="vibe-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 border border-white/15 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-display font-bold">Broadcast Your Current Vibe</h3>
+                <button onclick="closeVibeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Your Name or Alias</label>
+                    <input type="text" id="modal-name" placeholder="e.g. Deniz K." class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Current Vibe Category</label>
+                    <select id="modal-category" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-sm">
+                        <option value="Chill Lo-Fi Sunset">Chill Lo-Fi Sunset</option>
+                        <option value="High-Voltage Techno">High-Voltage Techno</option>
+                        <option value="Neon Cyberpunk Focus">Neon Cyberpunk Focus</option>
+                        <option value="Cozy Coffee Shop">Cozy Coffee Shop</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Location Spot</label>
+                    <input type="text" id="modal-location" placeholder="e.g. Alsancak Coast" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-white/10 text-sm">
+                </div>
+            </div>
+
+            <button onclick="submitVibePost()" class="w-full py-3 rounded-xl bg-gradient-to-r from-vibe-pink to-vibe-purple font-bold text-sm shadow-lg shadow-vibe-pink/25 hover:opacity-90">
+                Post Live Vibe
+            </button>
+        </div>
+    </div>
+
+    <!-- Notification Toast Box -->
+    <div id="toast-box" class="fixed bottom-6 right-6 z-50 glass-panel border border-vibe-cyan/40 px-5 py-3 rounded-2xl text-xs font-bold text-slate-100 shadow-2xl transition-all transform translate-y-20 opacity-0 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-vibe-cyan text-base"></i>
+        <span id="toast-msg">Action completed!</span>
+    </div>
+
+    <script>
+        let quizState = { step: 1, score: 50, answers: {} };
+        let audioCtx = null;
+        let masterGain = null;
+        let isAudioPlaying = false;
+        let activeBeat = 'synthwave';
+        let visualizerMode = 'bars';
+        let currentBpm = 120;
+
+        // Mock Feed Data
+        let vibeFeed = [
+            { id: 1, name: "Selin Y.", status: "Sunset Acoustic Magic", spot: "Bostanlı Coast", time: "2m ago", likes: 24, badge: "Chill Sunset", color: "from-amber-500 to-pink-500" },
+            { id: 2, name: "Ege M.", status: "Neon Cyber Code Sprint", spot: "Alsancak Cafe", time: "8m ago", likes: 42, badge: "High Focus", color: "from-cyan-500 to-blue-600" },
+            { id: 3, name: "Caner T.", status: "High Voltage Techno Night", spot: "Çeşme Beach Club", time: "15m ago", likes: 89, badge: "Party Mode", color: "from-purple-600 to-pink-600" }
+        ];
+
+        // Map Spot Data
+        const vibeSpots = {
+            bostanli: { title: "Bostanlı Sunset Palms", desc: "Acoustic jam circles, relaxed sunset crowd, warm tea & laughter.", score: "9.8 Vibe", cat: "sunset", x: 25, y: 35 },
+            alsancak: { title: "Alsancak Glow Streets", desc: "High energy bars, electronic bass, bustling night walkers.", score: "9.5 Vibe", cat: "night", x: 55, y: 60 },
+            kordon: { title: "Kordon Green Sunset", desc: "Chill sea breeze, picnic blankets, background lo-fi soundscapes.", score: "9.2 Vibe", cat: "sunset", x: 45, y: 45 },
+            cesme: { title: "Çeşme Sunset Beach", desc: "Deep house melodies, ocean waves, vibrant summer aura.", score: "9.9 Vibe", cat: "night", x: 80, y: 75 }
+        };
+
+        // DOM Lifecycle initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                initCanvasVisualizer();
+                initRadarChart();
+                renderMapPins();
+                renderFeed();
+            } catch (err) {
+                console.warn('Initial setup safe execution:', err);
+            }
+        });
+
+        function scrollToSection(id) {
+            document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast-box');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function selectOption(step, key, val) {
+            quizState.answers[step] = { key, val };
+            if (typeof val === 'number') quizState.score = Math.min(100, Math.max(10, quizState.score + val / 2));
+
+            if (step < 5) {
+                document.querySelector(`.quiz-step[data-step="${step}"]`).classList.add('hidden');
+                quizState.step = step + 1;
+                document.querySelector(`.quiz-step[data-step="${quizState.step}"]`).classList.remove('hidden');
+                document.getElementById('quiz-progress').style.width = `${(quizState.step / 5) * 100}%`;
+                document.getElementById('quiz-step-indicator').innerText = `Question ${quizState.step} of 5`;
+            } else {
+                calculateQuizResult();
+            }
+        }
+
+        function calculateQuizResult() {
+            document.querySelectorAll('.quiz-step').forEach(el => el.classList.add('hidden'));
+            document.getElementById('quiz-result').classList.remove('hidden');
+            document.getElementById('quiz-progress').style.width = `100%`;
+            document.getElementById('quiz-step-indicator').innerText = `Completed!`;
+
+            let finalScore = Math.round(quizState.score);
+            let status = "Neon Cyberpunk High";
+            let bpm = 128;
+            let desc = "Electric energy running through your system! High focus synth vibes.";
+
+            if (finalScore < 40) {
+                status = "Cozy Lo-Fi Chill";
+                bpm = 82;
+                desc = "Deep relaxation state. Smooth ambient ocean tides and rain acoustics.";
+            } else if (finalScore < 70) {
+                status = "Sunset Horizon Melancholy";
+                bpm = 105;
+                desc = "Warm melodic sunset frequencies. Perfect balance of nostalgia & chill energy.";
+            }
+
+            document.getElementById('res-status').innerText = status;
+            document.getElementById('res-score').innerText = `${finalScore}%`;
+            document.getElementById('res-bpm').innerText = bpm;
+            document.getElementById('res-description').innerText = desc;
+
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
+            }
+        }
+
+        function resetQuiz() {
+            quizState = { step: 1, score: 50, answers: {} };
+            document.getElementById('quiz-result').classList.add('hidden');
+            document.querySelectorAll('.quiz-step').forEach(el => el.classList.add('hidden'));
+            document.querySelector('.quiz-step[data-step="1"]').classList.remove('hidden');
+            document.getElementById('quiz-progress').style.width = `20%`;
+            document.getElementById('quiz-step-indicator').innerText = `Question 1 of 5`;
+        }
+
+        function applyVibeTheme() {
+            showToast("Vibe Theme Applied To Interface!");
+            document.getElementById('blob1').style.backgroundColor = '#00F0FF';
+            document.getElementById('blob2').style.backgroundColor = '#FF2E93';
+        }
+
+        function sendToCardGenerator() {
+            document.getElementById('card-input-status').value = document.getElementById('res-status').innerText;
+            updateCardPreview();
+            scrollToSection('card-gen');
+        }
+
+        /* Audio Controls & Synthesizer */
+        function initAudioContext() {
+            if (!audioCtx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioCtx();
+                masterGain = audioCtx.createGain();
+                masterGain.gain.value = 0.7;
+                masterGain.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleAudioEngine() {
+            initAudioContext();
+            isAudioPlaying = !isAudioPlaying;
+            const btn = document.getElementById('master-play-btn');
+            const placeholder = document.getElementById('visualizer-placeholder');
+            const badge = document.getElementById('audio-status-badge');
+
+            if (isAudioPlaying) {
+                btn.innerHTML = '<i class="fa-solid fa-pause"></i>';
+                placeholder.classList.add('hidden');
+                badge.innerText = "Playing";
+                badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-vibe-pink/10 border border-vibe-pink/30 text-vibe-pink animate-pulse";
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-play ml-0.5"></i>';
+                badge.innerText = "Paused";
+                badge.className = "px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-400";
+            }
+        }
+
+        function updateMasterVolume(val) {
+            if (masterGain) masterGain.gain.value = val;
+        }
+
+        function triggerSoundFX(type) {
+            initAudioContext();
+            if (!audioCtx) return;
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'synth-high') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'sub-bass') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } else if (type === 'lofi-chord') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(329.63, now);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+                osc.start(now);
+                osc.stop(now + 0.8);
+            } else if (type === 'laser') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+        }
+
+        function selectBeatTrack(track) {
+            activeBeat = track;
+            document.querySelectorAll('.track-btn').forEach(btn => btn.classList.remove('border-vibe-pink/40'));
+            if (event && event.target) {
+                event.target.classList.add('border-vibe-pink/40');
+            }
+            document.getElementById('current-track-title').innerText = `${track.toUpperCase()} Audio Stream`;
+            showToast(`Loaded ${track} soundscape`);
+        }
+
+        function setVisualizerMode(mode) {
+            visualizerMode = mode;
+        }
+
+        function updateTempo(bpm) {
+            currentBpm = bpm;
+            document.getElementById('tempo-val').innerText = `${bpm} BPM`;
+        }
+
+        /* Canvas Visualizer */
+        function initCanvasVisualizer() {
+            const canvas = document.getElementById('visualizer-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            function resize() {
+                if (!canvas.parentElement) return;
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+            resize();
+            window.addEventListener('resize', resize);
+
+            let particles = Array.from({ length: 40 }, () => ({
+                x: Math.random() * (canvas.width || 300),
+                y: Math.random() * (canvas.height || 200),
+                radius: Math.random() * 3 + 1,
+                vy: Math.random() * 1.5 + 0.5
+            }));
+
+            let step = 0;
+
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                step += 0.05;
+
+                if (visualizerMode === 'bars') {
+                    const bars = 32;
+                    const barWidth = canvas.width / bars;
+                    for (let i = 0; i < bars; i++) {
+                        let barHeight = isAudioPlaying 
+                            ? Math.sin(step + i * 0.3) * (canvas.height / 3) + (canvas.height / 2.5)
+                            : 10 + Math.sin(step + i * 0.1) * 5;
+
+                        const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+                        gradient.addColorStop(0, '#FF2E93');
+                        gradient.addColorStop(1, '#00F0FF');
+
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(i * barWidth, canvas.height - barHeight, barWidth - 3, barHeight);
+                    }
+                } else if (visualizerMode === 'particles') {
+                    particles.forEach(p => {
+                        if (isAudioPlaying) p.y -= p.vy * (currentBpm / 100);
+                        else p.y -= 0.3;
+
+                        if (p.y < 0) p.y = canvas.height;
+
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                        ctx.fillStyle = '#00F0FF';
+                        ctx.fill();
+                    });
+                } else if (visualizerMode === 'waves') {
+                    ctx.beginPath();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#9D00FF';
+
+                    for (let x = 0; x < canvas.width; x += 5) {
+                        let y = Math.sin(x * 0.01 + step) * (isAudioPlaying ? 40 : 5) + canvas.height / 2;
+                        if (x === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+
+                requestAnimationFrame(render);
+            }
+            render();
+        }
+
+        /* Radar Chart */
+        function initRadarChart() {
+            const canvas = document.getElementById('radar-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const radius = Math.min(cx, cy) - 20;
+
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+
+            for (let r = 0.2; r <= 1; r += 0.2) {
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius * r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            ctx.beginPath();
+            const points = [0.85, 0.62, 0.94, 0.75, 0.80];
+            const angles = points.map((_, i) => (i * 2 * Math.PI) / points.length);
+
+            angles.forEach((angle, i) => {
+                const x = cx + radius * points[i] * Math.cos(angle);
+                const y = cy + radius * points[i] * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
+            ctx.fill();
+            ctx.strokeStyle = '#00F0FF';
+            ctx.stroke();
+        }
+
+        function renderMapPins(filter = 'all') {
+            const container = document.getElementById('map-pins-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            Object.keys(vibeSpots).forEach(key => {
+                const spot = vibeSpots[key];
+                if (filter !== 'all' && spot.cat !== filter) return;
+
+                const pin = document.createElement('div');
+                pin.className = "absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group";
+                pin.style.left = `${spot.x}%`;
+                pin.style.top = `${spot.y}%`;
+                pin.onclick = () => selectSpot(key);
+
+                pin.innerHTML = `
+                    <div class="w-6 h-6 rounded-full bg-vibe-pink/30 border border-vibe-pink flex items-center justify-center animate-ping absolute"></div>
+                    <div class="relative z-10 w-6 h-6 rounded-full bg-vibe-pink border-2 border-white flex items-center justify-center text-[10px] font-bold text-white shadow-lg group-hover:scale-125 transition-transform">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                `;
+                container.appendChild(pin);
+            });
+        }
+
+        function selectSpot(key) {
+            const spot = vibeSpots[key];
+            if (!spot) return;
+            document.getElementById('spot-title').innerText = spot.title;
+            document.getElementById('spot-desc').innerText = spot.desc;
+            document.getElementById('spot-score').innerText = spot.score;
+        }
+
+        function filterMap(cat) {
+            renderMapPins(cat);
+        }
+
+        function renderFeed() {
+            const container = document.getElementById('vibe-feed-container');
+            if (!container) return;
+            container.innerHTML = vibeFeed.map(post => `
+                <div class="glass-panel rounded-2xl p-4 border border-white/10 flex items-start justify-between gap-4 hover:border-white/20 transition-all">
+                    <div class="flex items-start space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr ${post.color} flex items-center justify-center font-bold text-white text-sm">
+                            ${post.name.charAt(0)}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm text-slate-100">${post.name}</span>
+                                <span class="text-[10px] text-slate-400">• ${post.time}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold glass-card text-vibe-cyan border border-vibe-cyan/30">${post.badge}</span>
+                            </div>
+                            <h4 class="font-display font-semibold text-slate-200 mt-1">${post.status}</h4>
+                            <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-location-dot text-vibe-pink text-[10px] mr-1"></i>${post.spot}</p>
+                        </div>
+                    </div>
+                    <button onclick="likePost(${post.id})" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl glass-card text-xs font-semibold hover:text-vibe-pink transition-colors">
+                        <i class="fa-solid fa-heart"></i>
+                        <span>${post.likes}</span>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function likePost(id) {
+            const post = vibeFeed.find(p => p.id === id);
+            if (post) {
+                post.likes++;
+                renderFeed();
+            }
+        }
+
+        function openVibeModal() {
+            document.getElementById('vibe-modal').classList.remove('hidden');
+        }
+
+        function closeVibeModal() {
+            document.getElementById('vibe-modal').classList.add('hidden');
+        }
+
+        function submitVibePost() {
+            const name = document.getElementById('modal-name').value || "Anonymous";
+            const status = document.getElementById('modal-category').value;
+            const spot = document.getElementById('modal-location').value || "Izmir Spot";
+
+            vibeFeed.unshift({
+                id: Date.now(),
+                name,
+                status,
+                spot,
+                time: "Just now",
+                likes: 1,
+                badge: "Live Vibe",
+                color: "from-vibe-pink to-vibe-purple"
+            });
+
+            renderFeed();
+            closeVibeModal();
+            showToast("Your vibe has been broadcast live!");
+        }
+
+        function updateCardPreview() {
+            document.getElementById('preview-name').innerText = document.getElementById('card-input-name').value || 'Alex Rivera';
+            document.getElementById('preview-status').innerText = document.getElementById('card-input-status').value || 'Cyberpunk Midnight Focus';
+            document.getElementById('preview-track').innerText = document.getElementById('card-input-track').value || 'Kavinsky - Nightcall';
+            document.getElementById('preview-quote').innerText = `"${document.getElementById('card-input-quote').value}"`;
+        }
+
+        function setCardGradient(theme) {
+            const card = document.getElementById('vibe-card-preview');
+            card.className = "w-full max-w-sm h-auto aspect-[4/5] rounded-3xl p-6 shadow-2xl relative flex flex-col justify-between text-white overflow-hidden border border-white/20 transform transition-all hover:scale-[1.02] ";
+
+            if (theme === 'cyber') {
+                card.className += "bg-gradient-to-tr from-vibe-pink via-vibe-purple to-vibe-cyan";
+            } else if (theme === 'sunset') {
+                card.className += "bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600";
+            } else if (theme === 'emerald') {
+                card.className += "bg-gradient-to-tr from-emerald-400 via-teal-600 to-blue-600";
+            } else if (theme === 'dark') {
+                card.className += "bg-gradient-to-tr from-slate-900 via-slate-800 to-indigo-950";
+            }
+        }
+
+        function downloadVibeCard() {
+            showToast("Generating high-resolution card download...");
+        }
+
+        function copyCardLink() {
+            showToast("Sharable Vibe Card Link copied to clipboard!");
+        }
+    </script>
+</body>
+</html>
